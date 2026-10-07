@@ -174,6 +174,7 @@ Implemented commands:
    - ZCOUNT
    - ZINCRBY
    - ZINTER
+   - ZINTERCARD
    - ZINTERSTORE
    - ZLEXCOUNT
    - ZMPOP
