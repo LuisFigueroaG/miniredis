@@ -172,6 +172,8 @@ Implemented commands:
    - ZADD
    - ZCARD
    - ZCOUNT
+   - ZDIFF
+   - ZDIFFSTORE
    - ZINCRBY
    - ZINTER
    - ZINTERSTORE
