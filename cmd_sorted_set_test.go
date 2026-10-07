@@ -1823,133 +1823,6 @@ func TestZinter(t *testing.T) {
 	// it's the same code as ZINTERSTORE, so see TestZinterstore()
 }
 
-func TestZinterstore(t *testing.T) {
-	s, c := runWithClient(t)
-
-	s.ZAdd("h1", 1.0, "field1")
-	s.ZAdd("h1", 2.0, "field2")
-	s.ZAdd("h1", 3.0, "field3")
-	s.ZAdd("h2", 1.0, "field1")
-	s.ZAdd("h2", 2.0, "field2")
-	s.ZAdd("h2", 4.0, "field4")
-	s.SAdd("s2", "field1")
-
-	// Simple case
-	{
-		mustDo(t, c,
-			"ZINTERSTORE", "new", "2", "h1", "h2",
-			proto.Int(2),
-		)
-
-		ss, err := s.SortedSet("new")
-		ok(t, err)
-		equals(t, map[string]float64{"field1": 2, "field2": 4}, ss)
-	}
-
-	// WEIGHTS
-	{
-		mustDo(t, c,
-			"ZINTERSTORE", "weighted", "2", "h1", "h2", "WeIgHtS", "4.5", "12",
-			proto.Int(2),
-		)
-
-		ss, err := s.SortedSet("weighted")
-		ok(t, err)
-		equals(t, map[string]float64{"field1": 16.5, "field2": 33}, ss)
-	}
-
-	// AGGREGATE
-	{
-		mustDo(t, c,
-			"ZINTERSTORE", "aggr", "2", "h1", "h2", "AgGrEgAtE", "min",
-			proto.Int(2),
-		)
-
-		ss, err := s.SortedSet("aggr")
-		ok(t, err)
-		equals(t, map[string]float64{"field1": 1.0, "field2": 2.0}, ss)
-	}
-
-	// compatible set
-	{
-		mustDo(t, c,
-			"ZINTERSTORE", "cnew", "2", "h1", "s2",
-			proto.Int(1),
-		)
-
-		ss, err := s.SortedSet("cnew")
-		ok(t, err)
-		equals(t, map[string]float64{"field1": 2}, ss)
-	}
-
-	t.Run("errors", func(t *testing.T) {
-		mustDo(t, c,
-			"ZINTERSTORE",
-			proto.Error(errWrongNumber("zinterstore")),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set",
-			proto.Error(errWrongNumber("zinterstore")),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "noint",
-			proto.Error(errWrongNumber("zinterstore")),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "0", "key",
-			proto.Error("ERR at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE"),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "-1", "key",
-			proto.Error("ERR at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE"),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "1", "too", "many",
-			proto.Error(msgSyntaxError),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "key",
-			proto.Error(msgSyntaxError),
-		)
-
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "k1", "k2", "WEIGHTS",
-			proto.Error(msgSyntaxError),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "k1", "k2", "WEIGHTS", "1", "2", "3",
-			proto.Error(msgSyntaxError),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "k1", "k2", "WEIGHTS", "1", "nof",
-			proto.Error("ERR weight value is not a float"),
-		)
-
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "k1", "k2", "AGGREGATE",
-			proto.Error(msgSyntaxError),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "k1", "k2", "AGGREGATE", "foo",
-			proto.Error(msgSyntaxError),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "k1", "k2", "AGGREGATE", "sum", "foo",
-			proto.Error(msgSyntaxError),
-		)
-
-		s.Set("str", "value")
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "1", "str",
-			proto.Error(msgWrongType),
-		)
-		mustDo(t, c,
-			"ZINTERSTORE", "set", "2", "set", "str",
-			proto.Error(msgWrongType),
-		)
-	})
-}
-
 func TestZintercard(t *testing.T) {
 	s, c := runWithClient(t)
 
@@ -2072,6 +1945,133 @@ func TestZintercard(t *testing.T) {
 		)
 		mustDo(t, c,
 			"ZINTERCARD", "2", "nosuch", "str",
+			proto.Error(msgWrongType),
+		)
+	})
+}
+
+func TestZinterstore(t *testing.T) {
+	s, c := runWithClient(t)
+
+	s.ZAdd("h1", 1.0, "field1")
+	s.ZAdd("h1", 2.0, "field2")
+	s.ZAdd("h1", 3.0, "field3")
+	s.ZAdd("h2", 1.0, "field1")
+	s.ZAdd("h2", 2.0, "field2")
+	s.ZAdd("h2", 4.0, "field4")
+	s.SAdd("s2", "field1")
+
+	// Simple case
+	{
+		mustDo(t, c,
+			"ZINTERSTORE", "new", "2", "h1", "h2",
+			proto.Int(2),
+		)
+
+		ss, err := s.SortedSet("new")
+		ok(t, err)
+		equals(t, map[string]float64{"field1": 2, "field2": 4}, ss)
+	}
+
+	// WEIGHTS
+	{
+		mustDo(t, c,
+			"ZINTERSTORE", "weighted", "2", "h1", "h2", "WeIgHtS", "4.5", "12",
+			proto.Int(2),
+		)
+
+		ss, err := s.SortedSet("weighted")
+		ok(t, err)
+		equals(t, map[string]float64{"field1": 16.5, "field2": 33}, ss)
+	}
+
+	// AGGREGATE
+	{
+		mustDo(t, c,
+			"ZINTERSTORE", "aggr", "2", "h1", "h2", "AgGrEgAtE", "min",
+			proto.Int(2),
+		)
+
+		ss, err := s.SortedSet("aggr")
+		ok(t, err)
+		equals(t, map[string]float64{"field1": 1.0, "field2": 2.0}, ss)
+	}
+
+	// compatible set
+	{
+		mustDo(t, c,
+			"ZINTERSTORE", "cnew", "2", "h1", "s2",
+			proto.Int(1),
+		)
+
+		ss, err := s.SortedSet("cnew")
+		ok(t, err)
+		equals(t, map[string]float64{"field1": 2}, ss)
+	}
+
+	t.Run("errors", func(t *testing.T) {
+		mustDo(t, c,
+			"ZINTERSTORE",
+			proto.Error(errWrongNumber("zinterstore")),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set",
+			proto.Error(errWrongNumber("zinterstore")),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "noint",
+			proto.Error(errWrongNumber("zinterstore")),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "0", "key",
+			proto.Error("ERR at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE"),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "-1", "key",
+			proto.Error("ERR at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE"),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "1", "too", "many",
+			proto.Error(msgSyntaxError),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "key",
+			proto.Error(msgSyntaxError),
+		)
+
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "k1", "k2", "WEIGHTS",
+			proto.Error(msgSyntaxError),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "k1", "k2", "WEIGHTS", "1", "2", "3",
+			proto.Error(msgSyntaxError),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "k1", "k2", "WEIGHTS", "1", "nof",
+			proto.Error("ERR weight value is not a float"),
+		)
+
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "k1", "k2", "AGGREGATE",
+			proto.Error(msgSyntaxError),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "k1", "k2", "AGGREGATE", "foo",
+			proto.Error(msgSyntaxError),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "k1", "k2", "AGGREGATE", "sum", "foo",
+			proto.Error(msgSyntaxError),
+		)
+
+		s.Set("str", "value")
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "1", "str",
+			proto.Error(msgWrongType),
+		)
+		mustDo(t, c,
+			"ZINTERSTORE", "set", "2", "set", "str",
 			proto.Error(msgWrongType),
 		)
 	})
