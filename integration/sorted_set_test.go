@@ -984,6 +984,19 @@ func TestZdiff(t *testing.T) {
 		c.Do("SET", "str", "1")
 		c.Error("wrong kind", "ZDIFFSTORE", "dest", "2", "h1", "str")
 	})
+
+	testRaw(t, func(c *client) {
+		c.Do("ZADD", "h1", "1.0", "key1", "2.0", "key2", "3.0", "key3")
+		c.Do("ZADD", "h2", "1.0", "key1")
+		c.Do("MULTI")
+		c.Do("ZDIFF", "2", "h1", "h2", "WITHSCORES")
+		c.Do("ZDIFFSTORE", "res", "2", "h1", "h2")
+		c.Do("ZRANGE", "res", "0", "-1", "WITHSCORES")
+		c.Do("EXEC")
+
+		c.Do("EVAL", "return redis.call('ZDIFF', '2', KEYS[1], KEYS[2], 'WITHSCORES')", "2", "h1", "h2")
+		c.Do("EVAL", "return redis.call('ZDIFFSTORE', KEYS[1], '2', KEYS[2], KEYS[3])", "3", "res2", "h1", "h2")
+	})
 }
 
 func TestZpopminmax(t *testing.T) {
