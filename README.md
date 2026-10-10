@@ -127,6 +127,7 @@ Implemented commands:
    - LINDEX
    - LINSERT
    - LLEN
+   - LMPOP
    - LPOP
    - LPUSH
    - LPUSHX
